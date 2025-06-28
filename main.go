@@ -1,10 +1,11 @@
 package main
 
 import (
-	"errors"
+	"bufio"
 	"fmt"
-	"io"
 	"net"
+	"net/http"
+	"net/url"
 )
 
 var (
@@ -26,27 +27,58 @@ func main() {
 			break
 		}
 
-		go func(c net.Conn) {
-			defer c.Close()
-			var request string
-			buf := make([]byte, 1024)
-			for {
-				n, err := c.Read(buf)
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						return
-					}
-					fmt.Printf("error reading from buffer: %s", err)
-					return
-				}
-				request += string(buf[:n])
-			}
-			parse(request)
-		}(conn)
+		go handle(conn)
 	}
 
 	err = listener.Close()
 	if err != nil {
 		fmt.Printf("error occured closing the listener %s: %s", listener.Addr().String(), err)
+	}
+}
+
+func handle(c net.Conn) {
+	defer c.Close()
+	reader := bufio.NewReader(c)
+	req, err := http.ReadRequest(reader)
+	if err != nil {
+		fmt.Println("Failed to parse request:", err)
+		return
+	}
+
+	targetURL, err := url.Parse("http://localhost:8080")
+	if err != nil {
+		fmt.Println("Bad upstream URL:", err)
+		return
+	}
+
+	req.URL.Scheme = targetURL.Scheme
+	req.URL.Host = targetURL.Host
+	req.RequestURI = ""
+
+	upstreamConn, err := net.Dial("tcp4", targetURL.Host)
+	if err != nil {
+		fmt.Println("Failed to connect to upstream: ", err)
+		return
+	}
+	defer upstreamConn.Close()
+
+	err = req.Write(upstreamConn)
+	if err != nil {
+		fmt.Println("Failed to write request upstream:", err)
+		return
+	}
+
+	respReader := bufio.NewReader(upstreamConn)
+	resp, err := http.ReadResponse(respReader, req)
+	if err != nil {
+		fmt.Println("Failed to read upstream response: ", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	err = resp.Write(c)
+	if err != nil {
+		fmt.Println("Failed to write response to client: ", err)
+		return
 	}
 }
