@@ -19,7 +19,7 @@ func NewProxyFromScratch() *HTTPProxy {
 }
 
 func (p *HTTPProxy) AddListener(URL string) {
-	if err := p.lg.Add(URL); err != nil {
+	if err := p.lg.add(URL); err != nil {
 		fmt.Println("error occured while adding listener", err)
 	}
 }
@@ -34,7 +34,8 @@ func (p *HTTPProxy) AddEndpoint(URL string) {
 }
 
 func (p *HTTPProxy) Start() {
-	p.lg.Start()
+	// Start the listener group
+	p.lg.start()
 	// TODO: Return when all listeners are started
 	fmt.Println("proxy has started")
 }
@@ -44,7 +45,7 @@ func (p *HTTPProxy) Stop() {
 	fmt.Println("gracefully shutting down proxy...")
 
 	// Will block until all listeners are cleaned up
-	p.lg.Stop()
+	p.lg.stop()
 
 	fmt.Println("proxy shutdown complete.")
 }

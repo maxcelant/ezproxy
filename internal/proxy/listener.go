@@ -21,7 +21,7 @@ type listenerGroup struct {
 	wg        sync.WaitGroup
 }
 
-func (lg *listenerGroup) Add(URL string) error {
+func (lg *listenerGroup) add(URL string) error {
 	url, err := url.Parse(URL)
 	if err != nil {
 		return fmt.Errorf("bad upstream URL %w", err)
@@ -34,14 +34,14 @@ func (lg *listenerGroup) Add(URL string) error {
 	return nil
 }
 
-func (lg *listenerGroup) Start() {
+func (lg *listenerGroup) start() {
 	for _, l := range lg.listeners {
 		lg.wg.Add(1)
 		go l.start()
 	}
 }
 
-func (lg *listenerGroup) Stop() {
+func (lg *listenerGroup) stop() {
 	for _, l := range lg.listeners {
 		l.Close()
 		lg.wg.Done()
