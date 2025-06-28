@@ -3,6 +3,7 @@ package proxy
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 )
 
 type HTTPProxy struct {
-	listeners []*url.URL
+	listeners []net.Listener
 	endpoints []*url.URL
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -23,9 +24,14 @@ func NewProxyFromScratch() *HTTPProxy {
 }
 
 func (p *HTTPProxy) AddListener(URL string) {
-	l, err := url.Parse(URL)
+	url, err := url.Parse(URL)
 	if err != nil {
-		fmt.Println("Bad upstream URL:", err)
+		fmt.Println("bad upstream URL:", err)
+		return
+	}
+	l, err := net.Listen("tcp", url.Host)
+	if err != nil {
+		fmt.Println("unable to start listener at ", url.Host)
 		return
 	}
 	p.listeners = append(p.listeners, l)
@@ -34,7 +40,7 @@ func (p *HTTPProxy) AddListener(URL string) {
 func (p *HTTPProxy) AddEndpoint(URL string) {
 	e, err := url.Parse(URL)
 	if err != nil {
-		fmt.Println("Bad upstream URL:", err)
+		fmt.Println("bad downstream URL:", err)
 		return
 	}
 	p.endpoints = append(p.endpoints, e)
@@ -48,9 +54,12 @@ func (p *HTTPProxy) Start() {
 
 // Gracefully handle shutdown when sigterm signal is triggered
 func (p *HTTPProxy) Stop() {
-	p.cancel()
+	fmt.Println("gracefully shutting down proxy...")
+	// p.cancel()
+	p.stopListeners()
 	// This should block until all goroutines are cleaned up
 	p.wg.Wait()
+	fmt.Println("proxy shutdown complete.")
 }
 
 // TODO: Finish waitgroup for graceful shutdown
@@ -61,29 +70,27 @@ func (p *HTTPProxy) startListeners() {
 	}
 }
 
-func (p *HTTPProxy) startListener(ctx context.Context, url *url.URL) {
-	listener, err := net.Listen("tcp4", url.Host)
-	if err != nil {
-		fmt.Printf("unable to create listener on %s: %s", url.Host, err)
-		return
+func (p *HTTPProxy) stopListeners() {
+	for _, l := range p.listeners {
+		l.Close()
 	}
-	defer listener.Close()
-	for {
-		select {
-		case <-ctx.Done():
-			p.wg.Done()
-			fmt.Println("shutting down listener ", url.Host)
-			return
-		default:
-			conn, err := listener.Accept()
-			if err != nil {
-				fmt.Printf("error occured when attempting to connect to %s", listener.Addr().String())
-				break
-			}
+}
 
-			go handle(conn)
+func (p *HTTPProxy) startListener(ctx context.Context, listener net.Listener) {
+	defer p.wg.Done()
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			// closing the socket (part of shutdown sequence)
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+			fmt.Printf("error occured when attempting to connect to %s", listener.Addr().String())
+			return
 		}
+		go handle(conn)
 	}
+	// Decrement the wait group no matter what, so we aren't stuck in idle state
 }
 
 func handle(c net.Conn) {
@@ -91,7 +98,7 @@ func handle(c net.Conn) {
 	reader := bufio.NewReader(c)
 	req, err := http.ReadRequest(reader)
 	if err != nil {
-		fmt.Println("Failed to parse request:", err)
+		fmt.Println("failed to parse request:", err)
 		return
 	}
 
@@ -107,28 +114,28 @@ func handle(c net.Conn) {
 
 	upstreamConn, err := net.Dial("tcp4", targetURL.Host)
 	if err != nil {
-		fmt.Println("Failed to connect to upstream: ", err)
+		fmt.Println("failed to connect to upstream: ", err)
 		return
 	}
 	defer upstreamConn.Close()
 
 	err = req.Write(upstreamConn)
 	if err != nil {
-		fmt.Println("Failed to write request upstream:", err)
+		fmt.Println("failed to write request upstream:", err)
 		return
 	}
 
 	respReader := bufio.NewReader(upstreamConn)
 	resp, err := http.ReadResponse(respReader, req)
 	if err != nil {
-		fmt.Println("Failed to read upstream response: ", err)
+		fmt.Println("failed to read upstream response: ", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	err = resp.Write(c)
 	if err != nil {
-		fmt.Println("Failed to write response to client: ", err)
+		fmt.Println("failed to write response to client: ", err)
 		return
 	}
 }

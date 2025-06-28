@@ -1,11 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"net"
-	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/maxcelant/ezproxy/internal/proxy"
@@ -17,10 +13,12 @@ var (
 )
 
 func main() {
+	host := fmt.Sprintf("http://%s:%s", ip, port)
 	proxy := proxy.NewProxyFromScratch()
-	proxy.AddListener(fmt.Sprintf("%s:%s", ip, port))
+
+	proxy.AddListener(host)
 	proxy.Start()
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(5 * time.Second)
 	proxy.Stop()
 }
