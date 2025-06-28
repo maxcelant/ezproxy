@@ -40,6 +40,7 @@ func (p *HTTPProxy) Start() {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.listenerGroup.Start()
 	// TODO: Stop when all listeners are started
+	fmt.Println("proxy has started")
 }
 
 // Gracefully handle shutdown when sigterm signal is triggered

@@ -37,7 +37,7 @@ func (lg *ListenerGroup) Add(URL string) error {
 func (lg *ListenerGroup) Start() {
 	for _, l := range lg.listeners {
 		lg.wg.Add(1)
-		go l.Start()
+		go l.start()
 	}
 }
 
@@ -49,7 +49,7 @@ func (lg *ListenerGroup) Stop() {
 	lg.wg.Wait()
 }
 
-func (l *HTTPListener) Start() {
+func (l *HTTPListener) start() {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
