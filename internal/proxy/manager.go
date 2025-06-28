@@ -42,23 +42,26 @@ func (p *HTTPProxy) AddEndpoint(URL string) {
 
 func (p *HTTPProxy) Start() {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.startListeners()
+	// TODO: Stop when all listeners are started
 }
 
 // Gracefully handle shutdown when sigterm signal is triggered
 func (p *HTTPProxy) Stop() {
 	p.cancel()
 	// This should block until all goroutines are cleaned up
+	p.wg.Wait()
 }
 
 // TODO: Finish waitgroup for graceful shutdown
-func (p HTTPProxy) startListeners() {
+func (p *HTTPProxy) startListeners() {
 	for _, l := range p.listeners {
 		p.wg.Add(1)
 		go p.startListener(p.ctx, l)
 	}
 }
 
-func (p HTTPProxy) startListener(ctx context.Context, url *url.URL) {
+func (p *HTTPProxy) startListener(ctx context.Context, url *url.URL) {
 	listener, err := net.Listen("tcp4", url.Host)
 	if err != nil {
 		fmt.Printf("unable to create listener on %s: %s", url.Host, err)
@@ -68,6 +71,7 @@ func (p HTTPProxy) startListener(ctx context.Context, url *url.URL) {
 	for {
 		select {
 		case <-ctx.Done():
+			p.wg.Done()
 			fmt.Println("shutting down listener ", url.Host)
 			return
 		default:
