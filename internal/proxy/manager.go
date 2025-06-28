@@ -1,28 +1,25 @@
 package proxy
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"sync"
 )
 
 type HTTPProxy struct {
-	listenerGroup ListenerGroup
-	endpoints     []*url.URL
-	ctx           context.Context
-	cancel        context.CancelFunc
-	wg            sync.WaitGroup
+	lg        listenerGroup
+	endpoints []*url.URL
+	wg        sync.WaitGroup
 }
 
 func NewProxyFromScratch() *HTTPProxy {
 	return &HTTPProxy{
-		listenerGroup: ListenerGroup{},
+		lg: listenerGroup{},
 	}
 }
 
 func (p *HTTPProxy) AddListener(URL string) {
-	if err := p.listenerGroup.Add(URL); err != nil {
+	if err := p.lg.Add(URL); err != nil {
 		fmt.Println("error occured while adding listener", err)
 	}
 }
@@ -37,9 +34,8 @@ func (p *HTTPProxy) AddEndpoint(URL string) {
 }
 
 func (p *HTTPProxy) Start() {
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	p.listenerGroup.Start()
-	// TODO: Stop when all listeners are started
+	p.lg.Start()
+	// TODO: Return when all listeners are started
 	fmt.Println("proxy has started")
 }
 
@@ -47,9 +43,8 @@ func (p *HTTPProxy) Start() {
 func (p *HTTPProxy) Stop() {
 	fmt.Println("gracefully shutting down proxy...")
 
-	p.listenerGroup.Stop()
+	// Will block until all listeners are cleaned up
+	p.lg.Stop()
 
-	// This should block until all goroutines are cleaned up
-	p.wg.Wait()
 	fmt.Println("proxy shutdown complete.")
 }

@@ -11,17 +11,17 @@ import (
 )
 
 // Wrapper over native Listener to add functionality
-type HTTPListener struct {
+type httpListener struct {
 	net.Listener
 }
 
-// Wrapper object for lifecycle of all listeners
-type ListenerGroup struct {
-	listeners []HTTPListener
+// Handles the lifecycle of all listeners
+type listenerGroup struct {
+	listeners []httpListener
 	wg        sync.WaitGroup
 }
 
-func (lg *ListenerGroup) Add(URL string) error {
+func (lg *listenerGroup) Add(URL string) error {
 	url, err := url.Parse(URL)
 	if err != nil {
 		return fmt.Errorf("bad upstream URL %w", err)
@@ -30,18 +30,18 @@ func (lg *ListenerGroup) Add(URL string) error {
 	if err != nil {
 		return fmt.Errorf("unable to start listener at %s : %w", url.Host, err)
 	}
-	lg.listeners = append(lg.listeners, HTTPListener{l})
+	lg.listeners = append(lg.listeners, httpListener{l})
 	return nil
 }
 
-func (lg *ListenerGroup) Start() {
+func (lg *listenerGroup) Start() {
 	for _, l := range lg.listeners {
 		lg.wg.Add(1)
 		go l.start()
 	}
 }
 
-func (lg *ListenerGroup) Stop() {
+func (lg *listenerGroup) Stop() {
 	for _, l := range lg.listeners {
 		l.Close()
 		lg.wg.Done()
@@ -49,7 +49,7 @@ func (lg *ListenerGroup) Stop() {
 	lg.wg.Wait()
 }
 
-func (l *HTTPListener) start() {
+func (l *httpListener) start() {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
