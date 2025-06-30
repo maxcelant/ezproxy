@@ -52,5 +52,5 @@ func (p *HTTPProxy) Stop() {
 	// Will block until all listeners are cleaned up
 	p.lg.stop()
 
-	fmt.Println("proxy shutdown complete.")
+	fmt.Println("proxy shutdown complete")
 }
