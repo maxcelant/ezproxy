@@ -23,31 +23,34 @@ func NewProxyFromScratch() *HTTPProxy {
 	}
 }
 
-func (p *HTTPProxy) AddListener(URL string) {
+func (p *HTTPProxy) AddListener(URL string) error {
 	if err := p.lg.add(URL); err != nil {
-		fmt.Println("error occured while adding listener", err)
+		return fmt.Errorf("error occured while adding listener: %w", err)
 	}
+	return nil
 }
 
-func (p *HTTPProxy) AddEndpoint(URL string) {
+func (p *HTTPProxy) AddEndpoint(URL string) error {
 	e, err := url.Parse(URL)
 	if err != nil {
-		fmt.Println("bad downstream URL:", err)
-		return
+		return fmt.Errorf("bad downstream URL: %w", err)
 	}
 	p.endpoints = append(p.endpoints, e)
+	return nil
 }
 
-func (p *HTTPProxy) Start() {
+func (p *HTTPProxy) Start() (err error) {
 	fmt.Println("starting ezproxy")
 	// Start the listener group
-	p.lg.start()
+	err = p.lg.start()
 	// TODO: Return when all listeners are started
+
+	return err
 }
 
 // Gracefully handle shutdown when sigterm signal is triggered
 func (p *HTTPProxy) Stop() {
-	fmt.Println("gracefully shutting down proxy...")
+	fmt.Println("gracefully shutting down ezproxy")
 
 	// Will block until all listeners are cleaned up
 	p.lg.stop()
