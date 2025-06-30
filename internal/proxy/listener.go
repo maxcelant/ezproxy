@@ -119,6 +119,7 @@ func (l *httpListener) start() error {
 	}
 }
 
+// Absolutely temporary handling for now
 func handle(c net.Conn) {
 	defer c.Close()
 	reader := bufio.NewReader(c)
