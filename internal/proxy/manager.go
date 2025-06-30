@@ -14,7 +14,12 @@ type HTTPProxy struct {
 
 func NewProxyFromScratch() *HTTPProxy {
 	return &HTTPProxy{
-		lg: listenerGroup{},
+		lg: listenerGroup{
+			startCh:         make(chan *httpListener),
+			errCh:           make(chan error),
+			notifyStartedCh: make(chan struct{}),
+			started:         false,
+		},
 	}
 }
 
@@ -34,7 +39,7 @@ func (p *HTTPProxy) AddEndpoint(URL string) {
 }
 
 func (p *HTTPProxy) Start() {
-	fmt.Println("starting proxy...")
+	fmt.Println("starting ezproxy")
 	// Start the listener group
 	p.lg.start()
 	// TODO: Return when all listeners are started
