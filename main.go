@@ -1,24 +1,18 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/maxcelant/ezproxy/internal/proxy"
 )
 
-var (
-	ip   = "127.0.0.1"
-	port = "5000"
-)
-
 func main() {
-	host := fmt.Sprintf("http://%s:%s", ip, port)
 	proxy := proxy.NewProxyFromScratch()
 
-	proxy.AddListener(host)
+	proxy.AddListener("http://localhost:5000")
+	proxy.AddListener("http://localhost:5001")
 	proxy.Start()
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(30 * time.Second)
 	proxy.Stop()
 }

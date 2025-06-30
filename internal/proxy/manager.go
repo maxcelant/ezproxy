@@ -34,10 +34,10 @@ func (p *HTTPProxy) AddEndpoint(URL string) {
 }
 
 func (p *HTTPProxy) Start() {
+	fmt.Println("starting proxy...")
 	// Start the listener group
 	p.lg.start()
 	// TODO: Return when all listeners are started
-	fmt.Println("proxy has started")
 }
 
 // Gracefully handle shutdown when sigterm signal is triggered

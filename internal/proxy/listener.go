@@ -30,6 +30,7 @@ func (lg *listenerGroup) add(URL string) error {
 	if err != nil {
 		return fmt.Errorf("unable to start listener at %s : %w", url.Host, err)
 	}
+	fmt.Printf("starting listener at %s\n", url.Host)
 	lg.listeners = append(lg.listeners, httpListener{l})
 	return nil
 }
@@ -37,7 +38,7 @@ func (lg *listenerGroup) add(URL string) error {
 func (lg *listenerGroup) start() {
 	for _, l := range lg.listeners {
 		lg.wg.Add(1)
-		go l.start()
+		l.start()
 	}
 }
 
@@ -53,8 +54,6 @@ func (l *httpListener) start() {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			// TODO: Find a cleaner "defensive programming" approach to
-			// closing sockets, and not relying on the error telling us it's closed
 			if errors.Is(err, net.ErrClosed) {
 				return
 			}
