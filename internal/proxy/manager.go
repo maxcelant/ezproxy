@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"log/slog"
 	"net/url"
 	"sync"
 )
@@ -11,10 +10,10 @@ type HTTPProxy struct {
 	lg        listenerGroup
 	endpoints []*url.URL
 	wg        sync.WaitGroup
-	log       *slog.Logger
+	log       Logger
 }
 
-func NewProxyFromScratch(log *slog.Logger) *HTTPProxy {
+func NewProxyFromScratch(log Logger) *HTTPProxy {
 	return &HTTPProxy{
 		lg: listenerGroup{
 			startCh:         make(chan *httpListener),
@@ -30,7 +29,7 @@ func (p *HTTPProxy) AddListener(URL string) error {
 	if err := p.lg.add(URL); err != nil {
 		return fmt.Errorf("error occured while adding listener: %w", err)
 	}
-	p.log.Info("starting listener ", "url", URL)
+	p.log.Info("starting listener", "url", URL)
 	return nil
 }
 
