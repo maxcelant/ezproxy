@@ -30,6 +30,7 @@ func (p *HTTPProxy) AddListener(URL string) error {
 	if err := p.lg.add(URL); err != nil {
 		return fmt.Errorf("error occured while adding listener: %w", err)
 	}
+	p.log.Info("starting listener ", "url", URL)
 	return nil
 }
 

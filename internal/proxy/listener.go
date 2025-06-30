@@ -38,7 +38,6 @@ func (lg *listenerGroup) add(URL string) error {
 	if err != nil {
 		return fmt.Errorf("unable to start listener at %s : %w", url.Host, err)
 	}
-	fmt.Printf("starting listener at %s\n", url.Host)
 	lg.listeners = append(lg.listeners, &httpListener{l})
 	return nil
 }
@@ -99,6 +98,9 @@ func (lg *listenerGroup) reconcile() {
 
 func (lg *listenerGroup) stop() {
 	for _, l := range lg.listeners {
+		// Closing the listener will cause Accept to return an error
+		// Eventually I want to find a more "defensive programming" approach
+		// to safely exiting, but this works for now
 		l.Close()
 	}
 	lg.wg.Wait()
