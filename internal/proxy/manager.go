@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"sync"
 )
@@ -10,9 +11,10 @@ type HTTPProxy struct {
 	lg        listenerGroup
 	endpoints []*url.URL
 	wg        sync.WaitGroup
+	log       *slog.Logger
 }
 
-func NewProxyFromScratch() *HTTPProxy {
+func NewProxyFromScratch(log *slog.Logger) *HTTPProxy {
 	return &HTTPProxy{
 		lg: listenerGroup{
 			startCh:         make(chan *httpListener),
@@ -20,6 +22,7 @@ func NewProxyFromScratch() *HTTPProxy {
 			notifyStartedCh: make(chan struct{}),
 			started:         false,
 		},
+		log: log,
 	}
 }
 
@@ -40,20 +43,18 @@ func (p *HTTPProxy) AddEndpoint(URL string) error {
 }
 
 func (p *HTTPProxy) Start() (err error) {
-	fmt.Println("starting ezproxy")
+	p.log.Info("starting ezproxy")
 	// Start the listener group
 	err = p.lg.start()
-	// TODO: Return when all listeners are started
-
 	return err
 }
 
 // Gracefully handle shutdown when sigterm signal is triggered
 func (p *HTTPProxy) Stop() {
-	fmt.Println("gracefully shutting down ezproxy")
+	p.log.Info("gracefully shutting down ezproxy")
 
 	// Will block until all listeners are cleaned up
 	p.lg.stop()
 
-	fmt.Println("proxy shutdown complete")
+	p.log.Info("proxy shutdown complete")
 }
