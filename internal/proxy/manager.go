@@ -1,56 +1,55 @@
 package proxy
 
 import (
-	"fmt"
-	"github.com/maxcelant/ezproxy/internal/listener"
-	"net/url"
 	"sync"
+
+	"github.com/maxcelant/ezproxy/internal/chain"
 )
 
 type HTTPProxy struct {
-	lg        *listener.ListenerGroup
-	endpoints []*url.URL
-	wg        sync.WaitGroup
-	log       Logger
+	chains []*chain.Chain
+	wg     sync.WaitGroup
+	log    Logger
 }
 
-func NewProxyFromScratch(log Logger) *HTTPProxy {
-	return &HTTPProxy{
-		lg:  listener.NewListenerGroup(),
+type proxyOpts func(*HTTPProxy)
+
+func WithChain(c *chain.Chain) proxyOpts {
+	return func(h *HTTPProxy) {
+		h.chains = append(h.chains, c)
+	}
+}
+
+func NewProxyFromScratch(log Logger, opts ...proxyOpts) *HTTPProxy {
+	p := &HTTPProxy{
 		log: log,
 	}
-}
 
-func (p *HTTPProxy) AddListener(URL string) error {
-	if err := p.lg.Add(URL); err != nil {
-		return fmt.Errorf("error occured while adding listener: %w", err)
+	for _, opt := range opts {
+		opt(p)
 	}
-	p.log.Info("starting listener", "url", URL)
-	return nil
+
+	return p
 }
 
-func (p *HTTPProxy) AddEndpoint(URL string) error {
-	e, err := url.Parse(URL)
-	if err != nil {
-		return fmt.Errorf("bad downstream URL: %w", err)
-	}
-	p.endpoints = append(p.endpoints, e)
-	return nil
-}
-
-func (p *HTTPProxy) Start() (err error) {
+func (p *HTTPProxy) Start() error {
 	p.log.Info("starting ezproxy")
-	// Start the listener group
-	err = p.lg.Start()
-	return err
+
+	for _, c := range p.chains {
+		if err := c.Start(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Gracefully handle shutdown when sigterm signal is triggered
 func (p *HTTPProxy) Stop() {
 	p.log.Info("gracefully shutting down ezproxy")
 
-	// Will block until all listeners are cleaned up
-	p.lg.Stop()
+	for _, c := range p.chains {
+		c.Stop()
+	}
 
 	p.log.Info("proxy shutdown complete")
 }

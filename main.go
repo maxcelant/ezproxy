@@ -5,28 +5,18 @@ import (
 	"os"
 	"time"
 
+	"github.com/maxcelant/ezproxy/internal/chain"
 	"github.com/maxcelant/ezproxy/internal/proxy"
 )
 
 func main() {
-	var err error
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	proxy := proxy.NewProxyFromScratch(log)
+	chain := chain.NewChain(
+		chain.WithListener("http://localhost", 5000),
+		chain.WithListener("http://localhost", 5001),
+	)
 
-	if err = proxy.AddListener("http://localhost:5000"); err != nil {
-		log.Error("error adding listener", "err", err)
-		return
-	}
-
-	if err = proxy.AddListener("http://localhost:5001"); err != nil {
-		log.Error("error adding listener", "err", err)
-		return
-	}
-
-	if err = proxy.AddListener("http://localhost:5002"); err != nil {
-		log.Error("error adding listener", "err", err)
-		return
-	}
+	proxy := proxy.NewProxyFromScratch(log, proxy.WithChain(chain))
 
 	if err := proxy.Start(); err != nil {
 		log.Error("error starting proxy", "err", err)
