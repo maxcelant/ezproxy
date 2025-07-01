@@ -2,12 +2,13 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/maxcelant/ezproxy/internal/listener"
 	"net/url"
 	"sync"
 )
 
 type HTTPProxy struct {
-	lg        listenerGroup
+	lg        *listener.ListenerGroup
 	endpoints []*url.URL
 	wg        sync.WaitGroup
 	log       Logger
@@ -15,18 +16,13 @@ type HTTPProxy struct {
 
 func NewProxyFromScratch(log Logger) *HTTPProxy {
 	return &HTTPProxy{
-		lg: listenerGroup{
-			startCh:         make(chan *httpListener),
-			errCh:           make(chan error),
-			notifyStartedCh: make(chan struct{}),
-			started:         false,
-		},
+		lg:  listener.NewListenerGroup(),
 		log: log,
 	}
 }
 
 func (p *HTTPProxy) AddListener(URL string) error {
-	if err := p.lg.add(URL); err != nil {
+	if err := p.lg.Add(URL); err != nil {
 		return fmt.Errorf("error occured while adding listener: %w", err)
 	}
 	p.log.Info("starting listener", "url", URL)
@@ -45,7 +41,7 @@ func (p *HTTPProxy) AddEndpoint(URL string) error {
 func (p *HTTPProxy) Start() (err error) {
 	p.log.Info("starting ezproxy")
 	// Start the listener group
-	err = p.lg.start()
+	err = p.lg.Start()
 	return err
 }
 
@@ -54,7 +50,7 @@ func (p *HTTPProxy) Stop() {
 	p.log.Info("gracefully shutting down ezproxy")
 
 	// Will block until all listeners are cleaned up
-	p.lg.stop()
+	p.lg.Stop()
 
 	p.log.Info("proxy shutdown complete")
 }

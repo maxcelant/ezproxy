@@ -1,4 +1,4 @@
-package proxy
+package listener
 
 import (
 	"bufio"
@@ -11,16 +11,16 @@ import (
 )
 
 // Wrapper over native Listener to add functionality
-type httpListener struct {
+type HttpListener struct {
 	net.Listener
 }
 
 // Handles the lifecycle of all listeners
-type listenerGroup struct {
-	listeners []*httpListener
+type ListenerGroup struct {
+	listeners []*HttpListener
 	wg        sync.WaitGroup
 	// Used to spin off and start each listener
-	startCh chan *httpListener
+	startCh chan *HttpListener
 	// Used to notify back to start that a listener has started, to decrement counter
 	notifyStartedCh chan struct{}
 	// Notify the group of any errors
@@ -29,7 +29,16 @@ type listenerGroup struct {
 	started bool
 }
 
-func (lg *listenerGroup) add(URL string) error {
+func NewListenerGroup() *ListenerGroup {
+	return &ListenerGroup{
+		startCh:         make(chan *HttpListener),
+		errCh:           make(chan error),
+		notifyStartedCh: make(chan struct{}),
+		started:         false,
+	}
+}
+
+func (lg *ListenerGroup) Add(URL string) error {
 	url, err := url.Parse(URL)
 	if err != nil {
 		return fmt.Errorf("bad upstream URL %w", err)
@@ -38,11 +47,11 @@ func (lg *listenerGroup) add(URL string) error {
 	if err != nil {
 		return fmt.Errorf("unable to start listener at %s : %w", url.Host, err)
 	}
-	lg.listeners = append(lg.listeners, &httpListener{l})
+	lg.listeners = append(lg.listeners, &HttpListener{l})
 	return nil
 }
 
-func (lg *listenerGroup) start() error {
+func (lg *ListenerGroup) Start() error {
 	defer func() {
 		close(lg.errCh)
 		close(lg.notifyStartedCh)
@@ -75,10 +84,10 @@ func (lg *listenerGroup) start() error {
 	}
 }
 
-func (lg *listenerGroup) reconcile() {
+func (lg *ListenerGroup) reconcile() {
 	for l := range lg.startCh {
 		lg.wg.Add(1)
-		go func(l *httpListener) {
+		go func(l *HttpListener) {
 			// Notify back to the start method
 			go func() {
 				lg.notifyStartedCh <- struct{}{}
@@ -96,7 +105,7 @@ func (lg *listenerGroup) reconcile() {
 	}
 }
 
-func (lg *listenerGroup) stop() {
+func (lg *ListenerGroup) Stop() {
 	for _, l := range lg.listeners {
 		// Closing the listener will cause Accept to return an error
 		// Eventually I want to find a more "defensive programming" approach
@@ -106,7 +115,7 @@ func (lg *listenerGroup) stop() {
 	lg.wg.Wait()
 }
 
-func (l *httpListener) start() error {
+func (l *HttpListener) start() error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
