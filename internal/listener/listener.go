@@ -11,16 +11,16 @@ import (
 )
 
 // Wrapper over native Listener to add functionality
-type HttpListener struct {
+type httpListener struct {
 	net.Listener
 }
 
 // Handles the lifecycle of all listeners
 type ListenerGroup struct {
-	listeners []*HttpListener
+	listeners []*httpListener
 	wg        sync.WaitGroup
 	// Used to spin off and start each listener
-	startCh chan *HttpListener
+	startCh chan *httpListener
 	// Used to notify back to start that a listener has started, to decrement counter
 	notifyStartedCh chan struct{}
 	// Notify the group of any errors
@@ -31,7 +31,7 @@ type ListenerGroup struct {
 
 func NewListenerGroup() *ListenerGroup {
 	return &ListenerGroup{
-		startCh:         make(chan *HttpListener),
+		startCh:         make(chan *httpListener),
 		errCh:           make(chan error),
 		notifyStartedCh: make(chan struct{}),
 		started:         false,
@@ -47,7 +47,7 @@ func (lg *ListenerGroup) Add(URL string) error {
 	if err != nil {
 		return fmt.Errorf("unable to start listener at %s : %w", url.Host, err)
 	}
-	lg.listeners = append(lg.listeners, &HttpListener{l})
+	lg.listeners = append(lg.listeners, &httpListener{l})
 	return nil
 }
 
@@ -87,7 +87,7 @@ func (lg *ListenerGroup) Start() error {
 func (lg *ListenerGroup) reconcile() {
 	for l := range lg.startCh {
 		lg.wg.Add(1)
-		go func(l *HttpListener) {
+		go func(l *httpListener) {
 			// Notify back to the start method
 			go func() {
 				lg.notifyStartedCh <- struct{}{}
@@ -115,7 +115,7 @@ func (lg *ListenerGroup) Stop() {
 	lg.wg.Wait()
 }
 
-func (l *HttpListener) start() error {
+func (l *httpListener) start() error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
