@@ -2,12 +2,14 @@ package chain
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/maxcelant/ezproxy/internal/listener"
 )
 
 type Chain struct {
-	lg listener.ListenerGroup
+	lg  *listener.ListenerGroup
+	log *slog.Logger
 }
 
 type chainOpts func(*Chain) error
@@ -19,7 +21,10 @@ func WithListener(host string, port int) chainOpts {
 }
 
 func NewChain(opts ...chainOpts) *Chain {
-	c := &Chain{}
+	c := &Chain{
+		lg: listener.NewListenerGroup(),
+	}
+
 	var errors []error
 	for _, opt := range opts {
 		err := opt(c)
@@ -50,4 +55,8 @@ func (c *Chain) Start() error {
 
 func (c *Chain) Stop() {
 	c.lg.Stop()
+}
+
+func (c *Chain) InheritLoggerFromManager(logger *slog.Logger) {
+	c.log = logger
 }

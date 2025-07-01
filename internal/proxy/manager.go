@@ -1,26 +1,26 @@
 package proxy
 
 import (
-	"sync"
+	"log/slog"
 
 	"github.com/maxcelant/ezproxy/internal/chain"
 )
 
 type HTTPProxy struct {
 	chains []*chain.Chain
-	wg     sync.WaitGroup
-	log    Logger
+	log    *slog.Logger
 }
 
 type proxyOpts func(*HTTPProxy)
 
 func WithChain(c *chain.Chain) proxyOpts {
 	return func(h *HTTPProxy) {
+		c.InheritLoggerFromManager(h.log)
 		h.chains = append(h.chains, c)
 	}
 }
 
-func NewProxyFromScratch(log Logger, opts ...proxyOpts) *HTTPProxy {
+func NewProxyFromScratch(log *slog.Logger, opts ...proxyOpts) *HTTPProxy {
 	p := &HTTPProxy{
 		log: log,
 	}
