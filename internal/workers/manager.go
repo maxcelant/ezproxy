@@ -32,6 +32,11 @@ func NewWorkerPool() *WorkerPool {
 }
 
 func (p *WorkerPool) Start() (err error) {
+	defer func() {
+		close(p.errCh)
+		close(p.notifyStartedCh)
+		close(p.startCh)
+	}()
 	workerCount := runtime.NumCPU()
 
 	fmt.Printf("starting %d worker threads", workerCount)
