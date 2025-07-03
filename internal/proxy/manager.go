@@ -1,14 +1,17 @@
 package proxy
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/maxcelant/ezproxy/internal/chain"
+	"github.com/maxcelant/ezproxy/internal/workers"
 )
 
 type HTTPProxy struct {
-	chains []*chain.Chain
-	log    *slog.Logger
+	chains     []*chain.Chain
+	workerPool *workers.WorkerPool
+	log        *slog.Logger
 }
 
 type proxyOpts func(*HTTPProxy)
@@ -22,7 +25,8 @@ func WithChain(c *chain.Chain) proxyOpts {
 
 func NewProxyFromScratch(log *slog.Logger, opts ...proxyOpts) *HTTPProxy {
 	p := &HTTPProxy{
-		log: log,
+		log:        log,
+		workerPool: workers.NewWorkerPool(),
 	}
 
 	for _, opt := range opts {
@@ -40,16 +44,23 @@ func (p *HTTPProxy) Start() error {
 			return err
 		}
 	}
+
+	if err := p.workerPool.Start(); err != nil {
+		return fmt.Errorf("error starting worker pool: %w", err)
+	}
+
 	return nil
 }
 
-// Gracefully handle shutdown when sigterm signal is triggered
+// Gracefully handle shutdown of listeners and workers threads
 func (p *HTTPProxy) Stop() {
 	p.log.Info("gracefully shutting down ezproxy")
 
 	for _, c := range p.chains {
 		c.Stop()
 	}
+
+	p.workerPool.Stop()
 
 	p.log.Info("proxy shutdown complete")
 }

@@ -26,10 +26,4 @@ func main() {
 
 	time.Sleep(30 * time.Second)
 	proxy.Stop()
-
-	// NOTE: Worker test
-	// wp := workers.NewWorkerPool()
-	// wp.Start()
-	// time.Sleep(15 * time.Second)
-	// wp.Stop()
 }
