@@ -57,7 +57,7 @@ func (p *WorkerPool) Start() (err error) {
 }
 
 func (p *WorkerPool) reconcile() {
-	for worker := range p.startCh {
+	for w := range p.startCh {
 		go func(w *Worker) {
 			defer p.wg.Done()
 			p.wg.Add(1)
@@ -69,7 +69,7 @@ func (p *WorkerPool) reconcile() {
 				p.errCh <- err
 				return
 			}
-		}(worker)
+		}(w)
 	}
 }
 

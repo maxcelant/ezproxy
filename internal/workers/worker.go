@@ -6,15 +6,15 @@ import (
 	"time"
 )
 
-type Worker struct {
+type worker struct {
 	ctx context.Context
 }
 
-func NewWorker(ctx context.Context) *Worker {
-	return &Worker{ctx}
+func NewWorker(ctx context.Context) *worker {
+	return &worker{ctx}
 }
 
-func (w *Worker) start() error {
+func (w *worker) start() error {
 	fmt.Println("starting worker....")
 	for {
 		select {
