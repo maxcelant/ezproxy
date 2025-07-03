@@ -9,8 +9,8 @@ import (
 
 // Handles the lifecycle of the worker threads
 type WorkerPool struct {
-	workers         []*Worker
-	startCh         chan *Worker
+	workers         []*worker
+	startCh         chan *worker
 	notifyStartedCh chan struct{}
 	errCh           chan error
 	ctx             context.Context
@@ -21,8 +21,8 @@ type WorkerPool struct {
 func NewWorkerPool() *WorkerPool {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &WorkerPool{
-		workers:         make([]*Worker, runtime.NumCPU()),
-		startCh:         make(chan *Worker, runtime.NumCPU()),
+		workers:         make([]*worker, runtime.NumCPU()),
+		startCh:         make(chan *worker, runtime.NumCPU()),
 		notifyStartedCh: make(chan struct{}),
 		errCh:           make(chan error),
 		ctx:             ctx,
@@ -58,7 +58,7 @@ func (p *WorkerPool) Start() (err error) {
 
 func (p *WorkerPool) reconcile() {
 	for w := range p.startCh {
-		go func(w *Worker) {
+		go func(w *worker) {
 			defer p.wg.Done()
 			p.wg.Add(1)
 			go func() {
