@@ -91,6 +91,8 @@ func (lg *ListenerGroup) listen() error {
 	for _, sa := range lg.socketAddrs {
 		for i := range replicas {
 			fmt.Println("starting listener ", i)
+			// Custom listener type that wraps net.Listener
+			// to allow multiple goroutines to listen on the same address
 			l, err := Listen("tcp", sa)
 			if err != nil {
 				return fmt.Errorf("unable to start listener at %s : %w", sa, err)
