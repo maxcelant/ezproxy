@@ -128,7 +128,7 @@ func (lg *ListenerGroup) Stop() {
 	for _, l := range lg.listeners {
 		// Closing the listener will cause Accept to return an error
 		// Eventually I want to find a more "defensive programming" approach
-		// to safely exiting, but this works for now
+		// to safely exit, but this works for now
 		l.Close()
 	}
 	lg.wg.Wait()
