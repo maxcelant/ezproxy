@@ -7,7 +7,6 @@ import (
 
 	"github.com/maxcelant/ezproxy/internal/chain"
 	"github.com/maxcelant/ezproxy/internal/proxy"
-	// "github.com/maxcelant/ezproxy/internal/workers"
 )
 
 func main() {

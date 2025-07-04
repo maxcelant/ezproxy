@@ -56,19 +56,16 @@ func (c *Chain) addListener(host string, port int) error {
 	if err := c.lg.Add(URL); err != nil {
 		return fmt.Errorf("error occured while adding listener: %w", err)
 	}
-	c.log.Debug("adding listener", "listener", URL)
 	return nil
 }
 
 func (c *Chain) Start(d *dispatch.Dispatcher) error {
 	d.AddUpstreams(c.upstreams)
-	c.log.Debug("(chain) starting listener group")
 	err := c.lg.Start(d)
 	return err
 }
 
 func (c *Chain) Stop() {
-	c.log.Debug("(chain) stopping listener group")
 	c.lg.Stop()
 }
 
