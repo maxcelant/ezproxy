@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/maxcelant/ezproxy/internal/chain"
+	"github.com/maxcelant/ezproxy/internal/dispatch"
 	"github.com/maxcelant/ezproxy/internal/workers"
 )
 
@@ -39,14 +40,16 @@ func NewProxyFromScratch(log *slog.Logger, opts ...proxyOpts) *HTTPProxy {
 func (p *HTTPProxy) Start() error {
 	p.log.Info("starting ezproxy")
 
-	for _, c := range p.chains {
-		if err := c.Start(); err != nil {
-			return err
-		}
-	}
-
 	if err := p.workerPool.Start(); err != nil {
 		return fmt.Errorf("error starting worker pool: %w", err)
+	}
+
+	for _, c := range p.chains {
+		d := dispatch.NewDispatcher()
+		d.Mount(p.workerPool.ForwardRequestFunc())
+		if err := c.Start(d); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package workers
 import (
 	"context"
 	"fmt"
+	"net"
 	"runtime"
 	"sync"
 )
@@ -39,7 +40,7 @@ func (p *WorkerPool) Start() (err error) {
 	}()
 	workerCount := runtime.NumCPU()
 
-	fmt.Printf("starting %d worker threads", workerCount)
+	fmt.Printf("starting %d worker threads\n", workerCount)
 	go p.reconcile()
 
 	for range workerCount {
@@ -59,6 +60,16 @@ func (p *WorkerPool) Start() (err error) {
 	}
 	fmt.Println("all worker threads started")
 	return nil
+}
+
+func (p *WorkerPool) ForwardRequestFunc() func(c net.Conn) {
+	// Used to round robin requests to all the workers
+	i := 0
+	return func(c net.Conn) {
+		fmt.Printf("sending request to worker %d\n", i)
+		p.workers[i].handle(c)
+		i = (i + 1) % len(p.workers)
+	}
 }
 
 func (p *WorkerPool) reconcile() {

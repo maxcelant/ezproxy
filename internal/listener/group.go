@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"runtime"
 	"sync"
+
+	"github.com/maxcelant/ezproxy/internal/dispatch"
 )
 
 // Handles the lifecycle of all listeners
@@ -43,7 +45,7 @@ func (lg *ListenerGroup) Add(URL string) error {
 	return nil
 }
 
-func (lg *ListenerGroup) Start() error {
+func (lg *ListenerGroup) Start(d *dispatch.Dispatcher) error {
 	defer func() {
 		close(lg.errCh)
 		close(lg.notifyStartedCh)
@@ -56,7 +58,7 @@ func (lg *ListenerGroup) Start() error {
 	lg.started = true
 
 	// Creates all the listeners
-	if err := lg.listen(); err != nil {
+	if err := lg.listen(d); err != nil {
 		return fmt.Errorf("error occured while trying to start listeners: %w", err)
 	}
 
@@ -82,7 +84,7 @@ func (lg *ListenerGroup) Start() error {
 	}
 }
 
-func (lg *ListenerGroup) listen() error {
+func (lg *ListenerGroup) listen(d *dispatch.Dispatcher) error {
 	// We start a number of listener goroutines equal to
 	// (# of unique listeners) // CPU's for each unique socket address
 	replicas := runtime.NumCPU() / len(lg.socketAddrs)
@@ -97,7 +99,7 @@ func (lg *ListenerGroup) listen() error {
 			if err != nil {
 				return fmt.Errorf("unable to start listener at %s : %w", sa, err)
 			}
-			lg.listeners = append(lg.listeners, &httpListener{l})
+			lg.listeners = append(lg.listeners, NewListener(l, d))
 		}
 	}
 	return nil

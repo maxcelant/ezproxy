@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/maxcelant/ezproxy/internal/dispatch"
 	"github.com/maxcelant/ezproxy/internal/listener"
 )
 
 type Chain struct {
-	lg  *listener.ListenerGroup
-	log *slog.Logger
+	lg         *listener.ListenerGroup
+	upstreams  []string
+	dispatcher *dispatch.Dispatcher
+	log        *slog.Logger
 }
 
 type chainOpts func(*Chain) error
@@ -20,9 +23,18 @@ func WithListener(host string, port int) chainOpts {
 	}
 }
 
+func WithDownstream(host string, port int) chainOpts {
+	// TODO: Add more URL checking here
+	return func(c *Chain) error {
+		c.upstreams = append(c.upstreams, fmt.Sprintf("%s:%d", host, port))
+		return nil
+	}
+}
+
 func NewChain(opts ...chainOpts) *Chain {
 	c := &Chain{
-		lg: listener.NewListenerGroup(),
+		lg:        listener.NewListenerGroup(),
+		upstreams: make([]string, 0),
 	}
 
 	var errors []error
@@ -36,7 +48,6 @@ func NewChain(opts ...chainOpts) *Chain {
 	for _, err := range errors {
 		fmt.Println(err)
 	}
-
 	return c
 }
 
@@ -48,8 +59,9 @@ func (c *Chain) addListener(host string, port int) error {
 	return nil
 }
 
-func (c *Chain) Start() error {
-	err := c.lg.Start()
+func (c *Chain) Start(d *dispatch.Dispatcher) error {
+	d.AddUpstreams(c.upstreams)
+	err := c.lg.Start(d)
 	return err
 }
 
