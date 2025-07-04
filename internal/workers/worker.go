@@ -23,10 +23,9 @@ func (w *worker) start() error {
 	for {
 		select {
 		case <-w.ctx.Done():
-			fmt.Println("shutting down")
+			fmt.Println("shutting down worker")
 			return nil
 		default:
-			fmt.Println("running...")
 			time.Sleep(5 * time.Second)
 		}
 	}
@@ -50,6 +49,7 @@ func (w *worker) handle(c net.Conn) {
 	req.URL.Scheme = targetURL.Scheme
 	req.URL.Host = targetURL.Host
 	req.RequestURI = ""
+	req.Header.Add("x-forward-ezproxy", "true")
 
 	upstreamConn, err := net.Dial("tcp4", targetURL.Host)
 	if err != nil {
