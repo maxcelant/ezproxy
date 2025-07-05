@@ -37,6 +37,8 @@ func NewProxyFromScratch(log *slog.Logger, opts ...proxyOpts) *HTTPProxy {
 	return p
 }
 
+// Start initializes the proxy and starts all listeners and worker threads
+// also attaches the a dispatcher to each chains
 func (p *HTTPProxy) Start() error {
 	p.log.Info("starting ezproxy")
 
@@ -45,8 +47,11 @@ func (p *HTTPProxy) Start() error {
 	}
 
 	for _, c := range p.chains {
-		d := dispatch.NewDispatcher()
-		d.Mount(p.workerPool.ForwardRequestFunc())
+		// IMPORTANT: We mount the dispatcher func from the worker pool here
+		// This is how requests will be allowed to flow from the listener group
+		// to the worker pool
+		d := dispatch.NewDispatcher().
+			Mount(p.workerPool.ForwardRequestFunc())
 		if err := c.Start(d); err != nil {
 			return err
 		}
@@ -55,7 +60,8 @@ func (p *HTTPProxy) Start() error {
 	return nil
 }
 
-// Gracefully handle shutdown of listeners and workers threads
+// Stop gracefully handle shutdown of listeners and workers threads
+// We don't return until both have successfully finished
 func (p *HTTPProxy) Stop() {
 	p.log.Info("gracefully shutting down ezproxy")
 

@@ -15,12 +15,13 @@ func NewDispatcher() *Dispatcher {
 	}
 }
 
-func (d *Dispatcher) AddUpstreams(upstreams []string) {
-	d.upstreams = append(d.upstreams, upstreams...)
+func (d *Dispatcher) Mount(f func(c net.Conn)) *Dispatcher {
+	d.dispatchFunc = f
+	return d
 }
 
-func (d *Dispatcher) Mount(f func(c net.Conn)) {
-	d.dispatchFunc = f
+func (d *Dispatcher) AddUpstreams(upstreams []string) {
+	d.upstreams = append(d.upstreams, upstreams...)
 }
 
 func (d *Dispatcher) Dispatch(c net.Conn) {
