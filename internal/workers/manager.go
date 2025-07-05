@@ -3,9 +3,10 @@ package workers
 import (
 	"context"
 	"fmt"
-	"net"
 	"runtime"
 	"sync"
+
+	"github.com/maxcelant/ezproxy/internal/dispatch"
 )
 
 // Handles the lifecycle of the worker threads
@@ -62,12 +63,12 @@ func (p *WorkerPool) Start() (err error) {
 	return nil
 }
 
-func (p *WorkerPool) ForwardRequestFunc() func(c net.Conn) {
+func (p *WorkerPool) ForwardRequestFunc() func(dispatch.DispatchContext) {
 	// Used to round robin requests to all the workers
 	i := 0
-	return func(c net.Conn) {
+	return func(ctx dispatch.DispatchContext) {
 		fmt.Printf("sending request to worker %d\n", i)
-		p.workers[i].handle(c)
+		p.workers[i].handle(ctx)
 		i = (i + 1) % len(p.workers)
 	}
 }

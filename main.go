@@ -12,7 +12,11 @@ import (
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	chain := chain.NewChain(
-		chain.WithListener("http://localhost", 5000),
+		chain.WithListener("http://localhost:5000"),
+		chain.WithListener("http://localhost:5001"),
+		chain.WithListener("http://localhost:5002"),
+		chain.WithUpstream("http://localhost:8080"),
+		chain.WithUpstream("http://localhost:8081"),
 	)
 
 	proxy := proxy.NewProxyFromScratch(log, proxy.WithChain(chain))

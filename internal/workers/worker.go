@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/maxcelant/ezproxy/internal/dispatch"
 )
 
 type worker struct {
@@ -31,16 +34,19 @@ func (w *worker) start() error {
 	}
 }
 
-func (w *worker) handle(c net.Conn) {
-	defer c.Close()
-	reader := bufio.NewReader(c)
+func (w *worker) handle(ctx dispatch.DispatchContext) {
+	conn, upstreams := ctx.Conn, ctx.Upstreams
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
 	req, err := http.ReadRequest(reader)
 	if err != nil {
 		fmt.Println("failed to parse request:", err)
 		return
 	}
 
-	targetURL, err := url.Parse("http://localhost:8080")
+	// Random loadbalancing (for testing)
+	i := rand.Intn(len(upstreams))
+	targetURL, err := url.Parse(upstreams[i])
 	if err != nil {
 		fmt.Println("Bad upstream URL:", err)
 		return
@@ -72,7 +78,9 @@ func (w *worker) handle(c net.Conn) {
 	}
 	defer resp.Body.Close()
 
-	err = resp.Write(c)
+	resp.Header.Set("Host", targetURL.Host)
+
+	err = resp.Write(conn)
 	if err != nil {
 		fmt.Println("failed to write response to client: ", err)
 		return

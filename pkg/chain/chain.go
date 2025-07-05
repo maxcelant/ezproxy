@@ -17,16 +17,19 @@ type Chain struct {
 
 type chainOpts func(*Chain) error
 
-func WithListener(host string, port int) chainOpts {
+func WithListener(addr string) chainOpts {
 	return func(c *Chain) error {
-		return c.addListener(host, port)
+		if err := c.lg.Add(addr); err != nil {
+			return fmt.Errorf("error occured while adding listener: %w", err)
+		}
+		return nil
 	}
 }
 
-func WithDownstream(host string, port int) chainOpts {
+func WithUpstream(addr string) chainOpts {
 	// TODO: Add more URL checking here
 	return func(c *Chain) error {
-		c.upstreams = append(c.upstreams, fmt.Sprintf("%s:%d", host, port))
+		c.upstreams = append(c.upstreams, addr)
 		return nil
 	}
 }
@@ -49,14 +52,6 @@ func NewChain(opts ...chainOpts) *Chain {
 		fmt.Println(err)
 	}
 	return c
-}
-
-func (c *Chain) addListener(host string, port int) error {
-	URL := fmt.Sprintf("%s:%d", host, port)
-	if err := c.lg.Add(URL); err != nil {
-		return fmt.Errorf("error occured while adding listener: %w", err)
-	}
-	return nil
 }
 
 func (c *Chain) Start(d *dispatch.Dispatcher) error {
