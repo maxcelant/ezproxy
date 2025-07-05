@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/maxcelant/ezproxy/internal/chain"
 	"github.com/maxcelant/ezproxy/internal/dispatch"
 	"github.com/maxcelant/ezproxy/internal/workers"
+	"github.com/maxcelant/ezproxy/pkg/chain"
 )
 
 type HTTPProxy struct {
