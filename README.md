@@ -1,6 +1,5 @@
 # EzProxy
-
-Still need to complete the worker goroutine functionality before it can be fully used.
+A simple extensible proxy library in Go. Supports HTTP.
 
 ### Basic Use
 
@@ -23,3 +22,8 @@ func main() {
 	proxy.Stop()
 }
 ```
+
+### Future
+- [ ] Support HTTPS
+- [ ] Support TCP
+- [ ] Add Pre and Post-Filter Support

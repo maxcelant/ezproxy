@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/maxcelant/ezproxy/internal/chain"
-	"github.com/maxcelant/ezproxy/internal/proxy"
+	"github.com/maxcelant/ezproxy/pkg/chain"
+	"github.com/maxcelant/ezproxy/pkg/proxy"
 )
 
 func main() {
